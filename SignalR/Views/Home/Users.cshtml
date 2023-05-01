@@ -1,0 +1,70 @@
+﻿
+
+<div id="user-info" class="row">
+    <label for="UserName">Please enter your username</label>
+    <input type="text" class="form-control" id="UserName" name="UserName" autocomplete="off" />
+    <button type="button" class="btn btn-success" onclick="setUsername();">Join</button>
+</div>
+
+<div id="message-area" class="row" style="display:none">
+    <div>Joined as: <b><span id="submited-username">Not set</span></b></div>
+    <hr />
+    <div class="row">
+        <div class="col-6">
+            <ul id="message-list"></ul>
+        </div>
+    </div>
+    <hr />
+    <input type="text" id="message" autocomplete="off" />
+    <input type="button" id="send-button" value="Send Message" onclick="sendMessage(event)" />
+</div>
+
+@section Scripts{
+    <script src="~/lib/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        "use strict";
+
+        var connection = new signalR.HubConnectionBuilder().withUrl('/ChatHub').build();
+        var userName = '';
+        var connectionId = '';
+
+
+        connection.on("BroadcastToClient", function (message) {
+            var msg = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            var li = document.createElement('li');
+            li.innerHTML = msg;
+            document.getElementById('message-list').appendChild(li);
+        });
+
+        connection.start().then(function () {
+            
+        })
+            .then(function () { 
+                connection.invoke('GetConnectionId')
+                    .then(function (data) { connectionId = data; console.log(userName + ' => ' + connectionId); })
+            })
+            
+            .catch(function (err) {
+                console.error(err.toString());
+            });
+
+        function sendMessage(e) {
+            e.preventDefault();
+            var message = $('#message').val();
+            connection.invoke('SendMessage', userName, message, connectionId).then(function () {
+                $('#message').val('');
+            }).catch(function (err) {
+                console.error(err.toString());
+            });
+        }
+
+        function setUsername() {
+            userName = $('#UserName').val();
+            $('#user-info').css('display', 'none');
+            $('#message-area').css('display', 'block');
+            $('#submited-username').html(userName);
+
+        }
+    </script>
+}
